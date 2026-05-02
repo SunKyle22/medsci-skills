@@ -94,12 +94,12 @@ Priority order:
 
 ### 핵심 구분
 
-이 TODO의 Tier 1~3 15개 저널은 **사실상 공용 자산**(Stroke, JNS, Neurosurgery 등 뉴로인터벤션 연구자 누구나 유용). 사용자가 "개인용"이라고 느끼는 이유는 본인 FD Occlusion 프로젝트용이라는 맥락 때문인데, 프로파일 내용 자체는 universal. 따라서 **15개 모두 공개 커밋 권장**.
+이 TODO의 Tier 1~3 15개 저널은 **사실상 공용 자산**(Stroke, JNS, Neurosurgery 등 뉴로인터벤션 연구자 누구나 유용). 특정 프로젝트 컨텍스트에서 추가됐더라도 프로파일 내용 자체는 universal. 따라서 **15개 모두 공개 커밋 권장**.
 
 다만 **진짜 개인적인 프로파일**이 미래에 생길 수 있음:
-- "SMC_internal_radiology_only.md" (삼성서울병원 내부 선호 저널 리스트)
-- "HRP_Rhim_preferred.md" (임현철 교수님이 선호하는 저널 집합)
-- "_submission_blacklist.md" (reject 이력 있는 저널)
+- 기관 내부 선호 저널 리스트 (예: "<Institution>_internal_only.md")
+- 특정 멘토가 선호하는 저널 집합 (예: "<MentorInitials>_preferred.md")
+- Submission blacklist (reject 이력 있는 저널)
 
 이런 건 공개 레포에 올릴 이유가 없음.
 
