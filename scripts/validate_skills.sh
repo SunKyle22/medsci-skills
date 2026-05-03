@@ -26,6 +26,18 @@ echo " MedSci Skills Validator"
 echo "========================================="
 echo ""
 
+# Tool dependencies. exiftool is required for rule 10 (binary EXIF metadata
+# scan). Python3 is invoked inline; missing it fails on use. Make exiftool a
+# hard requirement so a missing install is loud, not silent — installing it
+# once (brew / apt) is the easy path and beats shipping PII in a PDF Author
+# field that the text linter cannot see.
+if ! command -v exiftool >/dev/null 2>&1; then
+  echo -e "${RED}ERROR${NC}: exiftool not found."
+  echo "  Install: brew install exiftool      # macOS"
+  echo "           sudo apt-get install -y libimage-exiftool-perl   # Ubuntu"
+  exit 2
+fi
+
 for skill_dir in "$SKILLS_DIR"/*/; do
   skill_name=$(basename "$skill_dir")
   skill_file="$skill_dir/SKILL.md"
@@ -291,6 +303,51 @@ PY
     # Precedent/path/blockquote rules (6-8) remain FAIL to block regressions.
     warn "Korean prose in SKILL.md: $count line(s), first $first"
   fi
+
+  # 10. Binary EXIF metadata scan (DOCX / PPTX / XLSX / PDF / PNG / JPG / TIFF).
+  # Document/image metadata (dc:creator, cp:lastModifiedBy, PDF Author, EXIF
+  # Artist, etc.) is opaque to grep on the file content and is the most common
+  # silent PII leak when authors drop a personally-authored slide deck or
+  # annotated screenshot into a skill. Match the values against the same
+  # `precedent_patterns` used for text scanning + the absolute-path patterns.
+  # Upstream/3rd-party document authors (e.g. STARD's Patrick Bossuyt, the
+  # python-pptx maintainer) are not in `precedent_patterns`, so they pass
+  # without an explicit allow-list.
+  exif_binary_files=()
+  while IFS= read -r -d '' f; do
+    if ! git -C "$REPO_ROOT" check-ignore -q "$f" 2>/dev/null; then
+      exif_binary_files+=("$f")
+    fi
+  done < <(find "${skill_dir}" -type f \( \
+      -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" \
+      -o -iname "*.tif" -o -iname "*.tiff" \
+      -o -iname "*.pdf" -o -iname "*.docx" -o -iname "*.pptx" -o -iname "*.xlsx" \
+    \) -print0 2>/dev/null)
+
+  exif_hits=0
+  if [ ${#exif_binary_files[@]} -gt 0 ]; then
+    exif_dump=$(exiftool -S \
+      -Author -Creator -LastModifiedBy -LastSavedBy -Copyright -Artist \
+      -Owner -OwnerName -CompanyName -Manager -HostComputer -UserComment \
+      -Subject -Title -Description -Keywords -Comment \
+      -Producer -CreatorTool -Software \
+      "${exif_binary_files[@]}" 2>/dev/null || true)
+    current_file=""
+    while IFS= read -r line; do
+      if [[ "$line" == ========\ * ]]; then
+        current_file="${line#======== }"
+        continue
+      fi
+      [ -z "$line" ] && continue
+      [ -z "$current_file" ] && continue
+      if echo "$line" | grep -qE "$precedent_patterns|/Users/eugene/|/home/eugene/"; then
+        rel="${current_file#$REPO_ROOT/}"
+        fail "Binary EXIF PII in $rel: $line"
+        ((exif_hits++))
+      fi
+    done <<< "$exif_dump"
+  fi
+  [ "$exif_hits" -eq 0 ] && pass "Binary EXIF (no PII in document/image metadata)"
 
   echo ""
 done

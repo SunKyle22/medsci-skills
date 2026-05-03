@@ -24,5 +24,8 @@ jobs:
       - name: Install Python deps for contract validator
         run: pip install pyyaml
 
+      - name: Install exiftool (for binary EXIF metadata scan)
+        run: sudo apt-get update && sudo apt-get install -y libimage-exiftool-perl
+
       - name: Run validate_skills.sh (PII + structure)
         run: bash scripts/validate_skills.sh
